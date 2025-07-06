@@ -22,3 +22,5 @@ def analyze():
         {"date": "07-Jun", "merchant": "Uber", "amount": 320, "category": "Travel"},
     ]
     return jsonify({"summary": summary, "transactions": transactions})
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
