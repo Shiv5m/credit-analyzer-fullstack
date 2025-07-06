@@ -26,18 +26,21 @@ def detect_bank(text):
         return "AXIS"
     return "UNKNOWN"
 
+CATEGORY_MAP = {
+    "Food": ["swiggy", "zomato", "domino", "pizza", "restaurant", "food court"],
+    "Travel": ["uber", "ola", "taxi", "yatra", "makemytrip", "indigo", "air"],
+    "Shopping": ["amazon", "flipkart", "myntra", "meesho", "ajio", "lifestyle"],
+    "Fuel": ["petrol", "iocl", "hpcl", "bharat petroleum", "fuel"],
+    "Utilities": ["jio", "airtel", "vodafone", "bsnl", "electricity", "broadband"],
+    "Entertainment": ["netflix", "hotstar", "bookmyshow", "spotify"],
+    "Groceries": ["bigbasket", "grofers", "more", "dmart", "reliance fresh"]
+}
+
 def categorize_by_merchant(merchant):
     m = merchant.lower()
-    if any(k in m for k in ["swiggy", "zomato", "domino", "pizza"]):
-        return "Food"
-    if any(k in m for k in ["uber", "ola", "taxi"]):
-        return "Travel"
-    if any(k in m for k in ["amazon", "flipkart", "myntra"]):
-        return "Shopping"
-    if any(k in m for k in ["petrol", "iocl", "hpcl", "bharat", "fuel"]):
-        return "Fuel"
-    if any(k in m for k in ["jio", "airtel", "vodafone"]):
-        return "Utilities"
+    for category, keywords in CATEGORY_MAP.items():
+        if any(keyword in m for keyword in keywords):
+            return category
     return "Others"
 
 def is_expense(merchant):
