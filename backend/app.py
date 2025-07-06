@@ -6,6 +6,11 @@ import re
 app = Flask(__name__)
 CORS(app)
 
+EXCLUDE_KEYWORDS = [
+    "credit", "cr", "payment", "received", "statement credit", 
+    "auto debit", "autopay", "reversal", "adjustment", "reward", "loyalty"
+]
+
 def extract_text_from_pdf(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         return "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
@@ -21,19 +26,37 @@ def detect_bank(text):
         return "AXIS"
     return "UNKNOWN"
 
+def categorize_by_merchant(merchant):
+    m = merchant.lower()
+    if any(k in m for k in ["swiggy", "zomato", "domino", "pizza"]):
+        return "Food"
+    if any(k in m for k in ["uber", "ola", "taxi"]):
+        return "Travel"
+    if any(k in m for k in ["amazon", "flipkart", "myntra"]):
+        return "Shopping"
+    if any(k in m for k in ["petrol", "iocl", "hpcl", "bharat", "fuel"]):
+        return "Fuel"
+    if any(k in m for k in ["jio", "airtel", "vodafone"]):
+        return "Utilities"
+    return "Others"
+
+def is_expense(merchant):
+    return not any(kw in merchant.lower() for kw in EXCLUDE_KEYWORDS)
+
 def parse_axis(text):
     txns = []
     txn_pattern = re.compile(r"(\d{2}/\d{2}/\d{4})\s+(.+?)\s+([A-Z &]+?)\s+([\d,]+\.\d{2})\s+Dr")
     for line in text.splitlines():
         match = txn_pattern.match(line.strip())
         if match:
-            date, merchant, category, amount = match.groups()
-            txns.append({
-                "date": date,
-                "merchant": merchant.strip(),
-                "category": category.strip().title(),
-                "amount": float(amount.replace(",", ""))
-            })
+            date, merchant, _, amount = match.groups()
+            if is_expense(merchant):
+                txns.append({
+                    "date": date,
+                    "merchant": merchant.strip(),
+                    "category": categorize_by_merchant(merchant),
+                    "amount": float(amount.replace(",", ""))
+                })
     return txns
 
 def parse_amex(text):
@@ -43,12 +66,13 @@ def parse_amex(text):
         match = txn_pattern.match(line.strip())
         if match:
             date, merchant, amount = match.groups()
-            txns.append({
-                "date": date,
-                "merchant": merchant.strip(),
-                "category": "Others",
-                "amount": float(amount.replace(",", ""))
-            })
+            if is_expense(merchant):
+                txns.append({
+                    "date": date,
+                    "merchant": merchant.strip(),
+                    "category": categorize_by_merchant(merchant),
+                    "amount": float(amount.replace(",", ""))
+                })
     return txns
 
 def parse_hdfc(text):
@@ -58,11 +82,11 @@ def parse_hdfc(text):
         match = txn_pattern.match(line.strip())
         if match:
             date, merchant, amount = match.groups()
-            if "CR" not in merchant.upper():
+            if is_expense(merchant):
                 txns.append({
                     "date": date,
                     "merchant": merchant.strip(),
-                    "category": "Others",
+                    "category": categorize_by_merchant(merchant),
                     "amount": float(amount.replace(",", ""))
                 })
     return txns
@@ -74,11 +98,11 @@ def parse_icici(text):
         match = txn_pattern.match(line.strip())
         if match:
             date, merchant, amount = match.groups()
-            if "CR" not in merchant.upper():
+            if is_expense(merchant):
                 txns.append({
                     "date": date,
                     "merchant": merchant.strip(),
-                    "category": "Others",
+                    "category": categorize_by_merchant(merchant),
                     "amount": float(amount.replace(",", ""))
                 })
     return txns
