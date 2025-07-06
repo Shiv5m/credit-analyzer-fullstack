@@ -1,13 +1,4 @@
 import React, { useState } from "react";
-import { Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function CreditAnalyzer() {
   const [pdfFile, setPdfFile] = useState(null);
@@ -29,32 +20,6 @@ export default function CreditAnalyzer() {
       console.error("Analysis failed:", error);
       alert("Failed to analyze the PDF. Check if backend is running.");
     }
-  };
-
-  const renderChart = () => {
-    const labels = Object.keys(analysis.summary);
-    const data = Object.values(analysis.summary);
-
-    return (
-      <Pie
-        data={{
-          labels,
-          datasets: [
-            {
-              label: "Spends by Category",
-              data,
-              backgroundColor: [
-                "#f87171", // red
-                "#60a5fa", // blue
-                "#34d399", // green
-                "#fbbf24", // yellow
-                "#c084fc", // purple
-              ],
-            },
-          ],
-        }}
-      />
-    );
   };
 
   return (
@@ -79,11 +44,28 @@ export default function CreditAnalyzer() {
 
       {analysis && (
         <>
+          {/* Summary Table */}
           <div className="mb-6 border rounded p-4 shadow">
-            <h2 className="text-xl font-semibold mb-4">Spending Summary</h2>
-            {renderChart()}
+            <h2 className="text-xl font-semibold mb-4">Category-wise Summary</h2>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr>
+                  <th className="border-b p-2">Category</th>
+                  <th className="border-b p-2">Total Spend (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(analysis.summary).map(([category, total], i) => (
+                  <tr key={i}>
+                    <td className="p-2 border-b">{category}</td>
+                    <td className="p-2 border-b">₹{total.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
+          {/* Transaction Table */}
           <div className="border rounded p-4 shadow">
             <h2 className="text-xl font-semibold mb-4">Transactions</h2>
             <table className="w-full text-left border-collapse">
