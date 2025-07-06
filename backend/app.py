@@ -2,9 +2,15 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pdfplumber
 import re
+import json
+import os
 
 app = Flask(__name__)
 CORS(app)
+
+# Load category mappings
+with open(os.path.join(os.path.dirname(__file__), "merchant_category_db.json")) as f:
+    MERCHANT_DB = json.load(f)
 
 EXCLUDE_KEYWORDS = [
     "credit", "cr", "payment", "received", "statement credit", 
@@ -26,20 +32,10 @@ def detect_bank(text):
         return "AXIS"
     return "UNKNOWN"
 
-CATEGORY_MAP = {
-    "Food": ["swiggy", "zomato", "domino", "pizza", "restaurant", "food court"],
-    "Travel": ["uber", "ola", "taxi", "yatra", "makemytrip", "indigo", "air"],
-    "Shopping": ["amazon", "flipkart", "myntra", "meesho", "ajio", "lifestyle"],
-    "Fuel": ["petrol", "iocl", "hpcl", "bharat petroleum", "fuel"],
-    "Utilities": ["jio", "airtel", "vodafone", "bsnl", "electricity", "broadband"],
-    "Entertainment": ["netflix", "hotstar", "bookmyshow", "spotify"],
-    "Groceries": ["bigbasket", "grofers", "more", "dmart", "reliance fresh"]
-}
-
 def categorize_by_merchant(merchant):
     m = merchant.lower()
-    for category, keywords in CATEGORY_MAP.items():
-        if any(keyword in m for keyword in keywords):
+    for keyword, category in MERCHANT_DB.items():
+        if keyword in m:
             return category
     return "Others"
 
@@ -48,11 +44,11 @@ def is_expense(merchant):
 
 def parse_axis(text):
     txns = []
-    txn_pattern = re.compile(r"(\d{2}/\d{2}/\d{4})\s+(.+?)\s+([A-Z &]+?)\s+([\d,]+\.\d{2})\s+Dr")
+    txn_pattern = re.compile(r"(\d{2}/\d{2}/\d{4})\s+(.+?)\s+[A-Z &]+?\s+([\d,]+\.\d{2})\s+Dr")
     for line in text.splitlines():
         match = txn_pattern.match(line.strip())
         if match:
-            date, merchant, _, amount = match.groups()
+            date, merchant, amount = match.groups()
             if is_expense(merchant):
                 txns.append({
                     "date": date,
