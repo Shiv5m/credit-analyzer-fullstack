@@ -1,45 +1,99 @@
 import React, { useState } from "react";
 
 export default function CreditAnalyzer() {
-  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfFiles, setPdfFiles] = useState([]);
   const [analysis, setAnalysis] = useState(null);
 
   const analyzeFile = async () => {
-    const formData = new FormData();
-    formData.append("file", pdfFile);
+    let allTxns = [];
 
-    try {
-      const res = await fetch(import.meta.env.VITE_API_URL + "/analyze", {
-        method: "POST",
-        body: formData,
-      });
+    for (const file of pdfFiles) {
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const data = await res.json();
-      setAnalysis(data);
-    } catch (error) {
-      console.error("Analysis failed:", error);
-      alert("Failed to analyze the PDF. Check if backend is running.");
+      try {
+        const res = await fetch(import.meta.env.VITE_API_URL + "/analyze", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (data.transactions) {
+          // tag each txn with its source bank
+          const taggedTxns = data.transactions.map((txn) => ({
+            ...txn,
+            bank: data.bank || "Unknown",
+          }));
+          allTxns = allTxns.concat(taggedTxns);
+        }
+      } catch (error) {
+        console.error("Failed to parse:", file.name, error);
+      }
     }
+
+    // Consolidate category totals
+    const summary = {};
+    allTxns.forEach((txn) => {
+      summary[txn.category] = (summary[txn.category] || 0) + txn.amount;
+    });
+
+    setAnalysis({ summary, transactions: allTxns });
+  };
+
+  const downloadCSV = () => {
+    if (!analysis?.transactions?.length) return;
+
+    const headers = ["Date", "Merchant", "Amount", "Category", "Bank"];
+    const rows = analysis.transactions.map((txn) => [
+      txn.date,
+      txn.merchant,
+      txn.amount,
+      txn.category,
+      txn.bank,
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers, ...rows]
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.href = encodedUri;
+    link.download = "credit_report.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 font-sans">
+    <div className="max-w-6xl mx-auto p-4 font-sans">
       <h1 className="text-3xl font-bold mb-6 text-center">Credit Card Spend Analyzer</h1>
 
       <div className="p-4 mb-6 border rounded shadow">
         <input
           type="file"
           accept="application/pdf"
-          onChange={(e) => setPdfFile(e.target.files[0])}
+          multiple
+          onChange={(e) => setPdfFiles([...e.target.files])}
           className="block mb-4"
         />
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          className="mr-4 px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
           onClick={analyzeFile}
-          disabled={!pdfFile}
+          disabled={pdfFiles.length === 0}
         >
           Analyze
         </button>
+        {analysis && analysis.transactions.length > 0 && (
+          <button
+            className="px-4 py-2 bg-green-600 text-white rounded"
+            onClick={downloadCSV}
+          >
+            Download CSV
+          </button>
+        )}
       </div>
 
       {analysis && (
@@ -65,9 +119,9 @@ export default function CreditAnalyzer() {
             </table>
           </div>
 
-          {/* Transaction Table */}
+          {/* Transactions Table */}
           <div className="border rounded p-4 shadow">
-            <h2 className="text-xl font-semibold mb-4">Transactions</h2>
+            <h2 className="text-xl font-semibold mb-4">All Transactions</h2>
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr>
@@ -75,6 +129,7 @@ export default function CreditAnalyzer() {
                   <th className="border-b p-2">Merchant</th>
                   <th className="border-b p-2">Amount</th>
                   <th className="border-b p-2">Category</th>
+                  <th className="border-b p-2">Bank</th>
                 </tr>
               </thead>
               <tbody>
@@ -84,6 +139,7 @@ export default function CreditAnalyzer() {
                     <td className="p-2 border-b">{txn.merchant}</td>
                     <td className="p-2 border-b">₹{txn.amount}</td>
                     <td className="p-2 border-b">{txn.category}</td>
+                    <td className="p-2 border-b">{txn.bank}</td>
                   </tr>
                 ))}
               </tbody>
