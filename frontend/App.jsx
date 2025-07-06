@@ -1,7 +1,4 @@
-// Your React component code (CreditAnalyzer) will go here
 import React, { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -47,11 +44,11 @@ export default function CreditAnalyzer() {
               label: "Spends by Category",
               data,
               backgroundColor: [
-                "#f87171",
-                "#60a5fa",
-                "#34d399",
-                "#fbbf24",
-                "#c084fc",
+                "#f87171", // red
+                "#60a5fa", // blue
+                "#34d399", // green
+                "#fbbf24", // yellow
+                "#c084fc", // purple
               ],
             },
           ],
@@ -61,50 +58,55 @@ export default function CreditAnalyzer() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-4">Credit Card Spend Analyzer</h1>
+    <div className="max-w-4xl mx-auto p-4 font-sans">
+      <h1 className="text-3xl font-bold mb-6 text-center">Credit Card Spend Analyzer</h1>
 
-      <Card className="p-4 mb-6">
-        <input type="file" accept="application/pdf" onChange={(e) => setPdfFile(e.target.files[0])} />
-        <Button className="mt-2" onClick={analyzeFile} disabled={!pdfFile}>
+      <div className="p-4 mb-6 border rounded shadow">
+        <input
+          type="file"
+          accept="application/pdf"
+          onChange={(e) => setPdfFile(e.target.files[0])}
+          className="block mb-4"
+        />
+        <button
+          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          onClick={analyzeFile}
+          disabled={!pdfFile}
+        >
           Analyze
-        </Button>
-      </Card>
+        </button>
+      </div>
 
       {analysis && (
         <>
-          <Card className="mb-6">
-            <CardContent>
-              <h2 className="text-xl font-semibold mb-2">Spending Summary</h2>
-              {renderChart()}
-            </CardContent>
-          </Card>
+          <div className="mb-6 border rounded p-4 shadow">
+            <h2 className="text-xl font-semibold mb-4">Spending Summary</h2>
+            {renderChart()}
+          </div>
 
-          <Card>
-            <CardContent>
-              <h2 className="text-xl font-semibold mb-2">Transactions</h2>
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className="border-b p-2">Date</th>
-                    <th className="border-b p-2">Merchant</th>
-                    <th className="border-b p-2">Amount</th>
-                    <th className="border-b p-2">Category</th>
+          <div className="border rounded p-4 shadow">
+            <h2 className="text-xl font-semibold mb-4">Transactions</h2>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr>
+                  <th className="border-b p-2">Date</th>
+                  <th className="border-b p-2">Merchant</th>
+                  <th className="border-b p-2">Amount</th>
+                  <th className="border-b p-2">Category</th>
+                </tr>
+              </thead>
+              <tbody>
+                {analysis.transactions.map((txn, i) => (
+                  <tr key={i}>
+                    <td className="p-2 border-b">{txn.date}</td>
+                    <td className="p-2 border-b">{txn.merchant}</td>
+                    <td className="p-2 border-b">₹{txn.amount}</td>
+                    <td className="p-2 border-b">{txn.category}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {analysis.transactions.map((txn, i) => (
-                    <tr key={i}>
-                      <td className="p-2 border-b">{txn.date}</td>
-                      <td className="p-2 border-b">{txn.merchant}</td>
-                      <td className="p-2 border-b">₹{txn.amount}</td>
-                      <td className="p-2 border-b">{txn.category}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>
