@@ -1,5 +1,8 @@
 import React, { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded shadow p-4 mb-6 ${className}`}>{children}</div>
+);
+const CardContent = ({ children }) => <div>{children}</div>;
 import { Button } from "@/components/ui/button";
 
 export default function CreditAnalyzer() {
