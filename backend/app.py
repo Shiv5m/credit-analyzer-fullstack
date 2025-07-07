@@ -4,12 +4,18 @@ import pdfplumber
 import re
 import json
 import os
+import joblib
 
 app = Flask(__name__)
 CORS(app)
 
+# Load keyword-based rules
 with open(os.path.join(os.path.dirname(__file__), "merchant_keywords.json")) as f:
     MERCHANT_DB = json.load(f)
+
+# Load ML fallback model
+model_path = os.path.join(os.path.dirname(__file__), "merchant_classifier_model.pkl")
+ML_MODEL = joblib.load(model_path)
 
 MONTHS = ("january", "february", "march", "april", "may", "june",
           "july", "august", "september", "october", "november", "december")
@@ -23,7 +29,11 @@ def categorize_by_merchant(merchant):
         for keyword in keywords:
             if keyword in merchant_clean:
                 return category
-    return "Others"
+    # fallback to ML model
+    try:
+        return ML_MODEL.predict([merchant])[0]
+    except:
+        return "Others"
 
 EXCLUDE_KEYWORDS = ["credit", "cr", "payment", "statement", "refund", "adjustment", "reversal", "received"]
 
@@ -106,7 +116,6 @@ def analyze():
     txns = parse(text, card)
     return jsonify({"summary": summarize(txns), "transactions": txns})
 
-
 @app.route('/resolve-merchants', methods=['POST'])
 def resolve_merchants():
     data = request.get_json()
@@ -114,19 +123,8 @@ def resolve_merchants():
     suggestions = []
 
     for merchant in merchants:
-        merchant_clean = merchant.lower()
-        category = "Others"
+        category = categorize_by_merchant(merchant)
         source = "https://www.google.com/search?q=" + merchant.replace(" ", "+")
-
-        # Try to match any keyword from merchant DB
-        for cat, keywords in MERCHANT_DB.items():
-            for kw in keywords:
-                if kw in merchant_clean:
-                    category = cat
-                    break
-            if category != "Others":
-                break
-
         suggestions.append({
             "merchant": merchant,
             "category": category,
