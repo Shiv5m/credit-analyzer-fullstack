@@ -42,10 +42,15 @@ def detect_card_name(pdf_file):
             text = first_page.extract_text() or ""
             lines = text.splitlines()
 
+            # Look for specific line patterns
             for line in lines:
-                if "credit card" in line.lower() and len(line.strip()) <= 100:
+                l = line.lower()
+                if "credit card" in l and "american express" in l:
+                    return line.strip()
+                if "credit card" in l and len(line.strip()) <= 100:
                     return line.strip()
 
+            # Fallbacks
             lower_text = text.lower()
             if "american express" in lower_text:
                 return "American Express Credit Card"
