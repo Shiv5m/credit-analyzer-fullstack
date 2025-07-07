@@ -1,182 +1,109 @@
 import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function CreditAnalyzer() {
-  const [pdfFiles, setPdfFiles] = useState([]);
+  const [pdfFile, setPdfFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const analyzeFile = async () => {
-    let allTxns = [];
-
-    for (const file of pdfFiles) {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        const res = await fetch(import.meta.env.VITE_API_URL + "/analyze", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (data.transactions) {
-          const taggedTxns = data.transactions.map((txn) => ({
-            ...txn,
-            bank: data.bank || "Unknown",
-          }));
-          allTxns = allTxns.concat(taggedTxns);
-        }
-      } catch (error) {
-        console.error("Failed to parse:", file.name, error);
-      }
-    }
-
-    const summary = {};
-    allTxns.forEach((txn) => {
-      summary[txn.category] = (summary[txn.category] || 0) + txn.amount;
-    });
-
-    setAnalysis({ summary, transactions: allTxns });
+  const dummyResult = {
+    summary: {
+      Food: 3200,
+      Travel: 1500,
+      Utilities: 2000,
+      Shopping: 4500,
+      Others: 800,
+    },
+    transactions: [
+      { date: "04-Jun", merchant: "Swiggy", amount: 578, category: "Food" },
+      { date: "05-Jun", merchant: "Amazon", amount: 1200, category: "Shopping" },
+      { date: "07-Jun", merchant: "Uber", amount: 320, category: "Travel" },
+    ],
   };
 
-  const downloadCSV = () => {
-    if (!analysis?.transactions?.length) return;
-
-    const headers = ["Date", "Merchant", "Amount", "Category", "Bank"];
-    const rows = analysis.transactions.map((txn) => [
-      txn.date,
-      txn.merchant,
-      txn.amount,
-      txn.category,
-      txn.bank,
-    ]);
-
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers, ...rows]
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.href = encodedUri;
-    link.download = "credit_report.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleUpload = (e) => {
+    setPdfFile(e.target.files[0]);
   };
 
-  const downloadOthersCSV = () => {
-    const others = analysis.transactions.filter(t => t.category === "Others");
-    if (!others.length) return;
-
-    const headers = ["Date", "Merchant", "Amount", "Category", "Bank"];
-    const rows = others.map((txn) => [
-      txn.date,
-      txn.merchant,
-      txn.amount,
-      txn.category,
-      txn.bank
-    ]);
-
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.href = encodedUri;
-    link.download = "uncategorized_expenses.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const analyzeFile = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setAnalysis(dummyResult);
+      setLoading(false);
+    }, 1500); // simulate processing delay
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 font-sans">
-      <h1 className="text-3xl font-bold mb-6 text-center">Credit Card Spend Analyzer</h1>
+    <div className="max-w-6xl mx-auto p-6 font-sans">
+      <h1 className="text-4xl font-bold mb-6 text-center text-blue-700">Credit Card Spend Analyzer</h1>
 
-      <div className="p-4 mb-6 border rounded shadow">
+      <Card className="p-6 mb-8 shadow-md border border-gray-200">
+        <label className="block text-lg font-medium mb-2">Upload your Credit Card Statement (PDF)</label>
         <input
           type="file"
           accept="application/pdf"
-          multiple
-          onChange={(e) => setPdfFiles([...e.target.files])}
-          className="block mb-4"
+          onChange={handleUpload}
+          className="block w-full text-sm border border-gray-300 rounded p-2"
         />
-        <button
-          className="mr-4 px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+        <Button
+          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded"
           onClick={analyzeFile}
-          disabled={pdfFiles.length === 0}
+          disabled={!pdfFile || loading}
         >
-          Analyze
-        </button>
-        {analysis && analysis.transactions.length > 0 && (
-          <div className="flex gap-4 mt-2">
-            <button
-              className="px-4 py-2 bg-green-600 text-white rounded"
-              onClick={downloadCSV}
-            >
-              Download All CSV
-            </button>
-            <button
-              className="px-4 py-2 bg-yellow-600 text-white rounded"
-              onClick={downloadOthersCSV}
-            >
-              Download 'Others' CSV
-            </button>
-          </div>
-        )}
-      </div>
+          {loading ? "Analyzing..." : "Analyze"}
+        </Button>
+      </Card>
 
       {analysis && (
         <>
-          {/* Summary Table */}
-          <div className="mb-6 border rounded p-4 shadow">
-            <h2 className="text-xl font-semibold mb-4">Category-wise Summary</h2>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr>
-                  <th className="border-b p-2">Category</th>
-                  <th className="border-b p-2">Total Spend (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(analysis.summary).map(([category, total], i) => (
-                  <tr key={i}>
-                    <td className="p-2 border-b">{category}</td>
-                    <td className="p-2 border-b">₹{total.toFixed(2)}</td>
+          <Card className="mb-6 shadow-sm border border-gray-200">
+            <CardContent>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800">Spending Summary</h2>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border-b p-3">Category</th>
+                    <th className="border-b p-3">Amount (₹)</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {Object.entries(analysis.summary).map(([category, amount], i) => (
+                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <td className="p-3 border-b font-medium">{category}</td>
+                      <td className="p-3 border-b">₹{amount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
 
-          {/* Transactions Table */}
-          <div className="border rounded p-4 shadow">
-            <h2 className="text-xl font-semibold mb-4">All Transactions</h2>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr>
-                  <th className="border-b p-2">Date</th>
-                  <th className="border-b p-2">Merchant</th>
-                  <th className="border-b p-2">Amount</th>
-                  <th className="border-b p-2">Category</th>
-                  <th className="border-b p-2">Bank</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analysis.transactions.map((txn, i) => (
-                  <tr key={i}>
-                    <td className="p-2 border-b">{txn.date}</td>
-                    <td className="p-2 border-b">{txn.merchant}</td>
-                    <td className="p-2 border-b">₹{txn.amount}</td>
-                    <td className="p-2 border-b">{txn.category}</td>
-                    <td className="p-2 border-b">{txn.bank}</td>
+          <Card className="shadow-sm border border-gray-200">
+            <CardContent>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800">Transactions</h2>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border-b p-3">Date</th>
+                    <th className="border-b p-3">Merchant</th>
+                    <th className="border-b p-3">Amount</th>
+                    <th className="border-b p-3">Category</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {analysis.transactions.map((txn, i) => (
+                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <td className="p-3 border-b">{txn.date}</td>
+                      <td className="p-3 border-b">{txn.merchant}</td>
+                      <td className="p-3 border-b">₹{txn.amount}</td>
+                      <td className="p-3 border-b">{txn.category}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>
