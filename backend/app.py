@@ -106,5 +106,34 @@ def analyze():
     txns = parse(text, card)
     return jsonify({"summary": summarize(txns), "transactions": txns})
 
+
+@app.route('/resolve-merchants', methods=['POST'])
+def resolve_merchants():
+    data = request.get_json()
+    merchants = data.get("merchants", [])
+    suggestions = []
+
+    for merchant in merchants:
+        merchant_clean = merchant.lower()
+        category = "Others"
+        source = "https://www.google.com/search?q=" + merchant.replace(" ", "+")
+
+        # Try to match any keyword from merchant DB
+        for cat, keywords in MERCHANT_DB.items():
+            for kw in keywords:
+                if kw in merchant_clean:
+                    category = cat
+                    break
+            if category != "Others":
+                break
+
+        suggestions.append({
+            "merchant": merchant,
+            "category": category,
+            "source": source
+        })
+
+    return jsonify({"suggestions": suggestions})
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
