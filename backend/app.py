@@ -35,15 +35,20 @@ def extract_text(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         return "\n".join(p.extract_text() for p in pdf.pages if p.extract_text())
 
-def detect_card(text):
-    if "HDFC Bank Credit Card" in text:
-        return "HDFC"
-    elif "American Express" in text:
-        return "AMEX"
-    elif "ICICI Bank" in text:
-        return "ICICI"
-    elif "Axis Bank" in text:
-        return "AXIS"
+def detect_card_name(pdf_file):
+    try:
+        with pdfplumber.open(pdf_file) as pdf:
+            first_page = pdf.pages[0]
+            lines = (first_page.extract_text() or "").splitlines()
+            for line in lines:
+                lower_line = line.lower()
+                if "credit card" in lower_line and len(line.strip()) > 10:
+                    return line.strip()
+            for line in lines:
+                if line.strip():
+                    return line.strip()
+    except Exception:
+        pass
     return "Unknown"
 
 def parse(text, card_name="Unknown"):
@@ -75,7 +80,8 @@ def analyze():
         return jsonify({'error': 'No file uploaded'}), 400
     f = request.files['file']
     text = extract_text(f)
-    card = detect_card(text)
+    f.seek(0)
+    card = detect_card_name(f)
     txns = parse(text, card)
     return jsonify({"summary": summarize(txns), "transactions": txns})
 
