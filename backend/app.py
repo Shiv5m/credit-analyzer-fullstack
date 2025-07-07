@@ -157,5 +157,51 @@ def label_merchant():
 
     return jsonify({"message": "Labels saved successfully"})
 
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+import joblib
+import pandas as pd
+
+@app.route('/retrain-model', methods=['POST'])
+def retrain_model():
+    from pathlib import Path
+
+    # Load manual labels
+    label_path = Path(__file__).parent / "merchant_labels.json"
+    manual_samples = []
+    if label_path.exists():
+        with open(label_path) as f:
+            manual_data = json.load(f)
+            manual_samples = [{"merchant": k, "category": v} for k, v in manual_data.items()]
+
+    # Load keywords as base training
+    keyword_path = Path(__file__).parent / "merchant_keywords.json"
+    with open(keyword_path) as f:
+        keyword_map = json.load(f)
+
+    synthetic_samples = []
+    import random
+    for category, keywords in keyword_map.items():
+        for kw in keywords:
+            for _ in range(3):
+                merchant = f"{kw} {random.choice(['pvt ltd', 'india', 'bangalore', ''])}".strip()
+                synthetic_samples.append({"merchant": merchant.title(), "category": category})
+
+    df = pd.DataFrame(synthetic_samples + manual_samples)
+    if df.empty:
+        return jsonify({"error": "No data to train"}), 400
+
+    model = Pipeline([
+        ("tfidf", TfidfVectorizer(ngram_range=(1, 2), lowercase=True)),
+        ("clf", LogisticRegression(max_iter=500))
+    ])
+    model.fit(df["merchant"], df["category"])
+    model_path = Path(__file__).parent / "merchant_classifier_model.pkl"
+    joblib.dump(model, model_path)
+
+    return jsonify({"message": "Model retrained", "samples": len(df)})
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
