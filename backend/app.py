@@ -133,5 +133,29 @@ def resolve_merchants():
 
     return jsonify({"suggestions": suggestions})
 
+
+import os
+import json
+
+LABEL_PATH = os.path.join(os.path.dirname(__file__), "merchant_labels.json")
+
+@app.route('/label-merchant', methods=['POST'])
+def label_merchant():
+    new_labels = request.get_json()
+    if not isinstance(new_labels, dict):
+        return jsonify({"error": "Invalid format"}), 400
+
+    if os.path.exists(LABEL_PATH):
+        with open(LABEL_PATH, "r") as f:
+            labels = json.load(f)
+    else:
+        labels = {}
+
+    labels.update(new_labels)
+    with open(LABEL_PATH, "w") as f:
+        json.dump(labels, f, indent=2)
+
+    return jsonify({"message": "Labels saved successfully"})
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
