@@ -8,25 +8,21 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-with open(os.path.join(os.path.dirname(__file__), "merchant_category_db.json")) as f:
+with open(os.path.join(os.path.dirname(__file__), "merchant_keywords.json")) as f:
     MERCHANT_DB = json.load(f)
 
 MONTHS = ("january", "february", "march", "april", "may", "june",
           "july", "august", "september", "october", "november", "december")
 
 def clean_merchant(merchant):
-    merchant = merchant.lower()
-    merchant = re.sub(r'[^a-z0-9 ]+', '', merchant)
-    merchant = re.sub(r'\s+', ' ', merchant).strip()
-    return merchant
+    return re.sub(r'[^a-z0-9 ]+', '', merchant.lower()).strip()
 
 def categorize_by_merchant(merchant):
-    merchant = clean_merchant(merchant)
-    if merchant in MERCHANT_DB:
-        return MERCHANT_DB[merchant]
-    for key in MERCHANT_DB:
-        if key in merchant:
-            return MERCHANT_DB[key]
+    merchant_clean = clean_merchant(merchant)
+    for category, keywords in MERCHANT_DB.items():
+        for keyword in keywords:
+            if keyword in merchant_clean:
+                return category
     return "Others"
 
 EXCLUDE_KEYWORDS = ["credit", "cr", "payment", "statement", "refund", "adjustment", "reversal", "received"]
@@ -71,7 +67,6 @@ def parse(text, card_name="Unknown"):
                 })
             continue
 
-        # Month format fallback
         tokens = line.split()
         if len(tokens) >= 4 and tokens[0].lower() in MONTHS:
             try:
