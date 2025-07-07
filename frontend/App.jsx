@@ -1,9 +1,4 @@
 import React, { useState } from "react";
-const Card = ({ children, className = "" }) => (
-  <div className={`bg-white rounded shadow p-4 mb-6 ${className}`}>{children}</div>
-);
-const CardContent = ({ children }) => <div>{children}</div>;
-import { Button } from "@/components/ui/button";
 
 export default function CreditAnalyzer() {
   const [pdfFile, setPdfFile] = useState(null);
@@ -34,79 +29,83 @@ export default function CreditAnalyzer() {
     setTimeout(() => {
       setAnalysis(dummyResult);
       setLoading(false);
-    }, 1500); // simulate processing delay
+    }, 1500); // simulate delay
   };
 
   return (
     <div className="max-w-6xl mx-auto p-6 font-sans">
-      <h1 className="text-4xl font-bold mb-6 text-center text-blue-700">Credit Card Spend Analyzer</h1>
+      <h1 className="text-4xl font-bold mb-6 text-center text-blue-700">
+        Credit Card Spend Analyzer
+      </h1>
 
-      <Card className="p-6 mb-8 shadow-md border border-gray-200">
-        <label className="block text-lg font-medium mb-2">Upload your Credit Card Statement (PDF)</label>
+      <div className="bg-white rounded shadow p-6 mb-8 border border-gray-200">
+        <label className="block text-lg font-medium mb-2">
+          Upload your Credit Card Statement (PDF)
+        </label>
         <input
           type="file"
           accept="application/pdf"
           onChange={handleUpload}
           className="block w-full text-sm border border-gray-300 rounded p-2"
         />
-        <Button
-          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded"
+        <button
+          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded disabled:opacity-50"
           onClick={analyzeFile}
           disabled={!pdfFile || loading}
         >
           {loading ? "Analyzing..." : "Analyze"}
-        </Button>
-      </Card>
+        </button>
+      </div>
 
       {analysis && (
         <>
-          <Card className="mb-6 shadow-sm border border-gray-200">
-            <CardContent>
-              <h2 className="text-2xl font-semibold mb-4 text-gray-800">Spending Summary</h2>
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border-b p-3">Category</th>
-                    <th className="border-b p-3">Amount (₹)</th>
+          <div className="bg-white rounded shadow p-6 mb-6 border border-gray-200">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+              Spending Summary
+            </h2>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border-b p-3">Category</th>
+                  <th className="border-b p-3">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(analysis.summary).map(([category, amount], i) => (
+                  <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    <td className="p-3 border-b font-medium">{category}</td>
+                    <td className="p-3 border-b">₹{amount}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(analysis.summary).map(([category, amount], i) => (
-                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                      <td className="p-3 border-b font-medium">{category}</td>
-                      <td className="p-3 border-b">₹{amount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-          <Card className="shadow-sm border border-gray-200">
-            <CardContent>
-              <h2 className="text-2xl font-semibold mb-4 text-gray-800">Transactions</h2>
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border-b p-3">Date</th>
-                    <th className="border-b p-3">Merchant</th>
-                    <th className="border-b p-3">Amount</th>
-                    <th className="border-b p-3">Category</th>
+          <div className="bg-white rounded shadow p-6 border border-gray-200">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+              Transactions
+            </h2>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border-b p-3">Date</th>
+                  <th className="border-b p-3">Merchant</th>
+                  <th className="border-b p-3">Amount</th>
+                  <th className="border-b p-3">Category</th>
+                </tr>
+              </thead>
+              <tbody>
+                {analysis.transactions.map((txn, i) => (
+                  <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    <td className="p-3 border-b">{txn.date}</td>
+                    <td className="p-3 border-b">{txn.merchant}</td>
+                    <td className="p-3 border-b">₹{txn.amount}</td>
+                    <td className="p-3 border-b">{txn.category}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {analysis.transactions.map((txn, i) => (
-                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                      <td className="p-3 border-b">{txn.date}</td>
-                      <td className="p-3 border-b">{txn.merchant}</td>
-                      <td className="p-3 border-b">₹{txn.amount}</td>
-                      <td className="p-3 border-b">{txn.category}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>
