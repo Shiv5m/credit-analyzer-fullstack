@@ -2,7 +2,6 @@ import re
 import json
 import pdfplumber
 
-# Load merchant categories
 with open("merchant_category_db.json", "r") as f:
     MERCHANT_CATEGORY_DB = json.load(f)
 
@@ -38,7 +37,7 @@ def parse_transactions(text, bank):
 
     for line in lines:
         if bank == "Axis":
-            match = re.match(r"(\\d{2}-[A-Za-z]{3})\\s+(.*?)\\s+(\\d+\\.\\d{2})", line)
+            match = re.match(r"(\d{2}-[A-Za-z]{3})\s+(.*?)\s+(\d+\.\d{2})", line)
             if match:
                 date, merchant, amount = match.groups()
                 transactions.append({
@@ -47,7 +46,7 @@ def parse_transactions(text, bank):
                     "amount": float(amount),
                 })
         elif bank == "Amex":
-            match = re.match(r"(\\d{2}/\\d{2})\\s+(.*?)\\s+(INR|Rs\\.?)[\\s]*([\\d,]+\\.\\d{2})", line)
+            match = re.match(r"(\d{2}/\d{2})\s+(.*?)\s+(INR|Rs\.?)\s*([\d,]+\.\d{2})", line)
             if match:
                 date, merchant, _, amount = match.groups()
                 transactions.append({
@@ -56,7 +55,7 @@ def parse_transactions(text, bank):
                     "amount": float(amount.replace(",", "")),
                 })
         elif bank == "HDFC":
-            match = re.match(r"(\\d{2}/\\d{2}/\\d{4})\\s+(.*?)\\s+INR\\s*([\\d,]+\\.\\d{2})", line)
+            match = re.match(r"(\d{2}/\d{2}/\d{4})\s+(.*?)\s+INR\s*([\d,]+\.\d{2})", line)
             if match:
                 date, merchant, amount = match.groups()
                 transactions.append({
@@ -65,7 +64,7 @@ def parse_transactions(text, bank):
                     "amount": float(amount.replace(",", "")),
                 })
         elif bank == "ICICI":
-            match = re.match(r"(\\d{2}-[A-Za-z]{3}-\\d{4})\\s+(.*?)\\s+(INR|Rs\\.?)[\\s]*([\\d,]+\\.\\d{2})", line)
+            match = re.match(r"(\d{2}-[A-Za-z]{3}-\d{4})\s+(.*?)\s+(INR|Rs\.?)\s*([\d,]+\.\d{2})", line)
             if match:
                 date, merchant, _, amount = match.groups()
                 transactions.append({
