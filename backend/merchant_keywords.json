@@ -1,0 +1,175 @@
+{
+  "UPI": [
+    "upi",
+    "gpay",
+    "google pay",
+    "paytm upi",
+    "phonepe",
+    "bhim"
+  ],
+  "Rent": [
+    "rent",
+    "no broker",
+    "nobroker",
+    "housing rent",
+    "nestaway"
+  ],
+  "Utilities": [
+    "electricity",
+    "water bill",
+    "broadband",
+    "internet",
+    "bescom",
+    "mseb",
+    "tneb",
+    "tata play",
+    "airtel fiber",
+    "jio fiber"
+  ],
+  "Fuel": [
+    "indian oil",
+    "bharat petroleum",
+    "hpcl",
+    "iocl",
+    "fuel",
+    "petrol",
+    "diesel"
+  ],
+  "Online Spends": [
+    "amazon",
+    "flipkart",
+    "myntra",
+    "ajio",
+    "snapdeal",
+    "meesho",
+    "nykaa"
+  ],
+  "Offline Spends": [
+    "pos",
+    "merchant",
+    "store",
+    "retail",
+    "shop",
+    "swipe"
+  ],
+  "Groceries": [
+    "bigbasket",
+    "bbdaily",
+    "grofers",
+    "blinkit",
+    "jiomart",
+    "reliance smart",
+    "more supermarket",
+    "spencer",
+    "dmart"
+  ],
+  "Dining Offline": [
+    "restaurant",
+    "cafe",
+    "eatery",
+    "bar",
+    "grill"
+  ],
+  "Dining Apps": [
+    "swiggy",
+    "zomato",
+    "eatsure",
+    "ubereats",
+    "dominos",
+    "pizza hut",
+    "faasos"
+  ],
+  "Travel": [
+    "irctc",
+    "makemytrip",
+    "goibibo",
+    "ola",
+    "uber",
+    "air india",
+    "indigo",
+    "vistara",
+    "airasia"
+  ],
+  "Healthcare": [
+    "pharmacy",
+    "apollo",
+    "1mg",
+    "practo",
+    "pharmeasy",
+    "netmeds",
+    "medlife",
+    "hospital",
+    "clinic",
+    "diagnostics"
+  ],
+  "Insurance": [
+    "lic",
+    "icici lombard",
+    "hdfc ergo",
+    "sbi general",
+    "bajaj allianz",
+    "tata aig",
+    "policybazaar"
+  ],
+  "Govt": [
+    "passport",
+    "pan",
+    "income tax",
+    "mparivahan",
+    "challan",
+    "uidai",
+    "gov"
+  ],
+  "Education": [
+    "byjus",
+    "unacademy",
+    "vedantu",
+    "coursera",
+    "udemy",
+    "edx",
+    "college",
+    "university",
+    "school",
+    "tuition"
+  ],
+  "Gift Cards": [
+    "gift card",
+    "gyftr",
+    "woohoo",
+    "amazon gift"
+  ],
+  "Wallet": [
+    "paytm",
+    "mobikwik",
+    "freecharge",
+    "wallet"
+  ],
+  "Gold": [
+    "scripbox",
+    "safegold",
+    "augmont",
+    "digital gold"
+  ],
+  "Entertainment": [
+    "netflix",
+    "hotstar",
+    "prime video",
+    "zee5",
+    "bookmyshow",
+    "sony liv",
+    "spotify",
+    "gaana",
+    "wynk"
+  ],
+  "International Offline": [
+    "int offline",
+    "intl store",
+    "intl pos"
+  ],
+  "International Online": [
+    "int online",
+    "intl ecommerce",
+    "intl website",
+    "paypal"
+  ]
+}
