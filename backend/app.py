@@ -39,26 +39,23 @@ def detect_card_name(pdf_file):
     try:
         with pdfplumber.open(pdf_file) as pdf:
             first_page = pdf.pages[0]
-            text = first_page.extract_text() or ""
-            lines = text.splitlines()
+            lines = (first_page.extract_text() or "").splitlines()
 
-            # Look for specific line patterns
             for line in lines:
-                l = line.lower()
-                if "credit card" in l and "american express" in l:
+                line_clean = line.encode("ascii", "ignore").decode().strip().lower()
+                if "american express" in line_clean and "credit card" in line_clean:
                     return line.strip()
-                if "credit card" in l and len(line.strip()) <= 100:
+                if "credit card" in line_clean and len(line.strip()) <= 100:
                     return line.strip()
 
-            # Fallbacks
-            lower_text = text.lower()
-            if "american express" in lower_text:
+            full_text = "\n".join(lines).lower()
+            if "american express" in full_text:
                 return "American Express Credit Card"
-            elif "hdfc" in lower_text:
+            elif "hdfc" in full_text:
                 return "HDFC Bank Credit Card"
-            elif "axis" in lower_text:
+            elif "axis" in full_text:
                 return "Axis Bank Credit Card"
-            elif "icici" in lower_text:
+            elif "icici" in full_text:
                 return "ICICI Bank Credit Card"
     except Exception:
         pass
