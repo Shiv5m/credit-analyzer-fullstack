@@ -12,7 +12,6 @@ with open(os.path.join(os.path.dirname(__file__), "merchant_category_db.json")) 
     MERCHANT_DB = json.load(f)
 
 def clean_merchant(merchant):
-    import re
     merchant = merchant.lower()
     merchant = re.sub(r'[^a-z0-9 ]+', '', merchant)
     merchant = re.sub(r'\s+', ' ', merchant).strip()
@@ -36,7 +35,18 @@ def extract_text(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         return "\n".join(p.extract_text() for p in pdf.pages if p.extract_text())
 
-def parse(text):
+def detect_card(text):
+    if "HDFC Bank Credit Card" in text:
+        return "HDFC"
+    elif "American Express" in text:
+        return "AMEX"
+    elif "ICICI Bank" in text:
+        return "ICICI"
+    elif "Axis Bank" in text:
+        return "AXIS"
+    return "Unknown"
+
+def parse(text, card_name="Unknown"):
     txns = []
     pattern = re.compile(r"(\d{2}/\d{2}/\d{4})\s+(.+?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)")
     for line in text.splitlines():
@@ -48,7 +58,8 @@ def parse(text):
                     "date": date,
                     "merchant": merchant.strip(),
                     "category": categorize_by_merchant(merchant),
-                    "amount": float(amount.replace(",", ""))
+                    "amount": float(amount.replace(",", "")),
+                    "card": card_name
                 })
     return txns
 
@@ -64,7 +75,8 @@ def analyze():
         return jsonify({'error': 'No file uploaded'}), 400
     f = request.files['file']
     text = extract_text(f)
-    txns = parse(text)
+    card = detect_card(text)
+    txns = parse(text, card)
     return jsonify({"summary": summarize(txns), "transactions": txns})
 
 if __name__ == "__main__":
