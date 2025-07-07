@@ -1,3 +1,4 @@
+// Full App.jsx with analysis, categorization, CSV export, and resolve-merchants
 import React, { useState } from "react";
 import { utils, writeFile } from "xlsx";
 
@@ -5,6 +6,8 @@ export default function App() {
   const [pdfFiles, setPdfFiles] = useState([]);
   const [summary, setSummary] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [suggested, setSuggested] = useState([]);
+  const [loadingResolve, setLoadingResolve] = useState(false);
 
   const analyzeFile = async () => {
     let allTxns = [];
@@ -23,12 +26,13 @@ export default function App() {
     }
 
     const grouped = {};
-    allTxns.forEach(txn => {
+    allTxns.forEach((txn) => {
       grouped[txn.category] = (grouped[txn.category] || 0) + txn.amount;
     });
 
     setSummary(grouped);
     setTransactions(allTxns);
+    setSuggested([]);
   };
 
   const downloadCSV = () => {
@@ -38,8 +42,25 @@ export default function App() {
     writeFile(wb, "credit-card-report.xlsx");
   };
 
+  const resolveMerchants = async () => {
+    const others = transactions.filter((txn) => txn.category === "Others");
+    if (!others.length) return;
+
+    setLoadingResolve(true);
+
+    const res = await fetch(import.meta.env.VITE_API_URL + "/resolve-merchants", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ merchants: others.map((txn) => txn.merchant) }),
+    });
+
+    const data = await res.json();
+    setSuggested(data.suggestions || []);
+    setLoadingResolve(false);
+  };
+
   return (
-    <div className="p-4 max-w-4xl mx-auto">
+    <div className="p-4 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Credit Card Spend Analyzer</h1>
 
       <input
@@ -76,7 +97,15 @@ export default function App() {
             </tbody>
           </table>
 
-          <div className="flex justify-end mb-2">
+          <div className="flex gap-2 justify-end mb-2">
+            <button
+              onClick={resolveMerchants}
+              className="px-4 py-2 bg-yellow-600 text-white rounded"
+              disabled={loadingResolve}
+            >
+              {loadingResolve ? "Checking..." : "Recheck Unknown Merchants"}
+            </button>
+
             <button
               onClick={downloadCSV}
               className="px-4 py-2 bg-green-600 text-white rounded"
@@ -86,7 +115,7 @@ export default function App() {
           </div>
 
           <h2 className="text-xl font-semibold mt-4 mb-2">All Transactions</h2>
-          <table className="w-full border text-sm">
+          <table className="w-full border text-sm mb-6">
             <thead>
               <tr>
                 <th className="border p-2">Date</th>
@@ -109,6 +138,39 @@ export default function App() {
             </tbody>
           </table>
         </>
+      )}
+
+      {suggested.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-lg font-bold mb-2">Suggestions for "Others" Merchants</h2>
+          <table className="w-full border text-sm">
+            <thead>
+              <tr>
+                <th className="border p-2">Merchant</th>
+                <th className="border p-2">Suggested Category</th>
+                <th className="border p-2">Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suggested.map((sug, i) => (
+                <tr key={i}>
+                  <td className="border p-2">{sug.merchant}</td>
+                  <td className="border p-2">{sug.category}</td>
+                  <td className="border p-2">
+                    <a
+                      href={sug.source}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      Link
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
