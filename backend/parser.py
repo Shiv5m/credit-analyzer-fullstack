@@ -17,21 +17,22 @@ def categorize_merchant(merchant):
             return category
     return "Others"
 
-def extract_text_from_pdf(file_stream):
+def extract_text_from_pdf(file_bytes):
     text = ""
-    with fitz.open(stream=file_stream.read(), filetype="pdf") as doc:
+    with fitz.open(stream=file_bytes, filetype="pdf") as doc:
         for page in doc:
             text += page.get_text()
     return text
 
 def detect_bank(text):
-    if "axis bank" in text.lower():
+    text_lower = text.lower()
+    if "axis bank" in text_lower:
         return "Axis"
-    elif "american express" in text.lower():
+    elif "american express" in text_lower:
         return "Amex"
-    elif "hdfc bank" in text.lower():
+    elif "hdfc bank" in text_lower:
         return "HDFC"
-    elif "icici bank" in text.lower():
+    elif "icici bank" in text_lower:
         return "ICICI"
     else:
         return "Unknown"
@@ -86,8 +87,8 @@ def parse_transactions(text, bank):
 
     return transactions
 
-def analyze_pdf(file_stream):
-    text = extract_text_from_pdf(file_stream)
+def analyze_pdf(file_bytes):
+    text = extract_text_from_pdf(file_bytes)
     bank = detect_bank(text)
     txns = parse_transactions(text, bank)
 
