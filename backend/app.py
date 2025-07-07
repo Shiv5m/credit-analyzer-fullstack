@@ -2,47 +2,82 @@
 from flask import Flask, request, jsonify
 import os
 import json
-import joblib
+import pdfplumber
 from pathlib import Path
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-import pandas as pd
+app = Flask(__name__)
 
-
-def categorize_merchant(merchant_name, keywords, model=None):
+def categorize_merchant(merchant_name, keywords):
     merchant_lower = merchant_name.lower()
-
     for category, words in keywords.items():
         for word in words:
             if word.lower() in merchant_lower:
                 return category
-
-    # ML fallback
-    if model:
-        try:
-            probas = model.predict_proba([merchant_name])[0]
-            categories = model.classes_
-            max_idx = probas.argmax()
-            if probas[max_idx] >= 0.7:
-                return categories[max_idx]
-        except:
-            pass
-
     return "Others"
 
-app = Flask(__name__)
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    file = request.files["file"]
+    filename = file.filename
+    card_name = filename.replace("Statement", "").replace(".pdf", "").strip()
 
-LABEL_PATH = os.path.join(os.path.dirname(__file__), "merchant_labels.json")
+    temp_path = "/tmp/temp.pdf"
+    file.save(temp_path)
+
+    with pdfplumber.open(temp_path) as pdf:
+        text = "
+".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+
+    os.remove(temp_path)
+
+    lines = text.splitlines()
+    transactions = []
+
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) >= 3:
+            try:
+                amount = float(parts[-1].replace(",", "").replace("₹", ""))
+                date = parts[0]
+                merchant = " ".join(parts[1:-1])
+                transactions.append({
+                    "date": date,
+                    "merchant": merchant,
+                    "amount": amount,
+                    "card": card_name
+                })
+            except:
+                continue
+
+    # Load keywords
+    keyword_path = Path(__file__).parent / "merchant_keywords.json"
+    if not keyword_path.exists():
+        return jsonify({"error": "merchant_keywords.json not found"}), 500
+
+    with open(keyword_path) as f:
+        keyword_map = json.load(f)
+
+    # Assign categories
+    for txn in transactions:
+        txn["category"] = categorize_merchant(txn["merchant"], keyword_map)
+
+    summary = {}
+    for txn in transactions:
+        summary[txn["category"]] = summary.get(txn["category"], 0) + txn["amount"]
+
+    return jsonify({
+        "summary": summary,
+        "transactions": transactions
+    })
 
 @app.route('/label-merchant', methods=['POST'])
 def label_merchant():
+    LABEL_PATH = Path(__file__).parent / "merchant_labels.json"
     new_labels = request.get_json()
     if not isinstance(new_labels, dict):
         return jsonify({"error": "Invalid format"}), 400
 
-    if os.path.exists(LABEL_PATH):
+    if LABEL_PATH.exists():
         with open(LABEL_PATH, "r") as f:
             labels = json.load(f)
     else:
@@ -53,32 +88,6 @@ def label_merchant():
         json.dump(labels, f, indent=2)
 
     return jsonify({"message": "Labels saved successfully"})
-
-@app.route('/retrain-model', methods=['POST'])
-def retrain_model():
-    label_path = Path(__file__).parent / "merchant_labels.json"
-    if not label_path.exists():
-        return jsonify({"error": "No labels found"}), 400
-
-    with open(label_path) as f:
-        manual_data = json.load(f)
-
-    data = [{"merchant": k, "category": v} for k, v in manual_data.items()]
-    df = pd.DataFrame(data)
-
-    if df.empty:
-        return jsonify({"error": "No training data"}), 400
-
-    model = Pipeline([
-        ("tfidf", TfidfVectorizer(ngram_range=(1, 2), lowercase=True)),
-        ("clf", LogisticRegression(max_iter=500))
-    ])
-    model.fit(df["merchant"], df["category"])
-
-    model_path = Path(__file__).parent / "merchant_classifier_model.pkl"
-    joblib.dump(model, model_path)
-
-    return jsonify({"message": "Model retrained", "samples": len(df)})
 
 if __name__ == "__main__":
     app.run(debug=True)
