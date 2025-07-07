@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from parser import analyze_pdf  # New parser with partial match
+from parser import analyze_pdf
 
 app = Flask(__name__)
 CORS(app)
@@ -19,7 +19,9 @@ def analyze():
         return jsonify({'error': 'Only PDF files are supported'}), 400
 
     try:
-        result = analyze_pdf(file)
+        # Read file as bytes here and pass to parser
+        file_bytes = file.read()
+        result = analyze_pdf(file_bytes)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
