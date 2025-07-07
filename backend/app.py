@@ -11,6 +11,9 @@ CORS(app)
 with open(os.path.join(os.path.dirname(__file__), "merchant_category_db.json")) as f:
     MERCHANT_DB = json.load(f)
 
+MONTHS = ("january", "february", "march", "april", "may", "june",
+          "july", "august", "september", "october", "november", "december")
+
 def clean_merchant(merchant):
     merchant = merchant.lower()
     merchant = re.sub(r'[^a-z0-9 ]+', '', merchant)
@@ -26,7 +29,7 @@ def categorize_by_merchant(merchant):
             return MERCHANT_DB[key]
     return "Others"
 
-EXCLUDE_KEYWORDS = ["credit", "cr", "payment", "statement", "refund", "adjustment", "reversal"]
+EXCLUDE_KEYWORDS = ["credit", "cr", "payment", "statement", "refund", "adjustment", "reversal", "received"]
 
 def is_expense(merchant):
     return not any(kw in merchant.lower() for kw in EXCLUDE_KEYWORDS)
@@ -40,39 +43,31 @@ def detect_card_name(pdf_file):
         with pdfplumber.open(pdf_file) as pdf:
             first_page = pdf.pages[0]
             lines = (first_page.extract_text() or "").splitlines()
-
-            # Priority: Line 3 (typically the card name line)
-            if len(lines) >= 3 and "credit card" in lines[2].lower():
-                return lines[2].strip().replace("Statement", "").strip()
-
+            if len(lines) >= 3:
+                line3 = lines[2].strip()
+                if "credit card" in line3.lower():
+                    return line3.replace("Statement", "").strip()
             for line in lines:
                 l = line.encode("ascii", "ignore").decode().strip().lower()
-                if "american express" in l and "credit card" in l:
+                if "credit card" in l:
                     return line.strip().replace("Statement", "").strip()
-                if "credit card" in l and len(line.strip()) <= 100:
-                    return line.strip().replace("Statement", "").strip()
-
-            # Fallback
-            full_text = "\n".join(lines).lower()
-            if "american express" in full_text:
-                return "American Express Credit Card"
-            elif "hdfc" in full_text:
-                return "HDFC Bank Credit Card"
-            elif "axis" in full_text:
-                return "Axis Bank Credit Card"
-            elif "icici" in full_text:
-                return "ICICI Bank Credit Card"
+            return "Unknown"
     except Exception:
-        pass
-    return "Unknown"
+        return "Unknown"
 
 def parse(text, card_name="Unknown"):
     txns = []
-    pattern = re.compile(r"(\d{2}/\d{2}/\d{4})\s+(.+?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)")
-    for line in text.splitlines():
-        match = pattern.match(line.strip())
-        if match:
-            date, merchant, amount = match.groups()
+    lines = text.splitlines()
+
+    date_pattern = re.compile(r"(\d{2}/\d{2}/\d{4})\s+(.+?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)")
+    alt_pattern = re.compile(r"^([A-Za-z]+)\s+(\d{1,2})\s+(.+?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)$")
+
+    for line in lines:
+        line = line.strip()
+
+        m1 = date_pattern.match(line)
+        if m1:
+            date, merchant, amount = m1.groups()
             if is_expense(merchant):
                 txns.append({
                     "date": date,
@@ -81,6 +76,21 @@ def parse(text, card_name="Unknown"):
                     "amount": float(amount.replace(",", "")),
                     "card": card_name
                 })
+            continue
+
+        m2 = alt_pattern.match(line)
+        if m2:
+            month, day, merchant, amount = m2.groups()
+            if month.lower() in MONTHS and is_expense(merchant):
+                date = f"{day.zfill(2)}/{str(list(MONTHS).index(month.lower())+1).zfill(2)}/2025"
+                txns.append({
+                    "date": date,
+                    "merchant": merchant.strip(),
+                    "category": categorize_by_merchant(merchant),
+                    "amount": float(amount.replace(",", "")),
+                    "card": card_name
+                })
+
     return txns
 
 def summarize(txns):
