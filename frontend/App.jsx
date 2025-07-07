@@ -19,7 +19,6 @@ export default function CreditAnalyzer() {
 
         const data = await res.json();
         if (data.transactions) {
-          // tag each txn with its source bank
           const taggedTxns = data.transactions.map((txn) => ({
             ...txn,
             bank: data.bank || "Unknown",
@@ -31,7 +30,6 @@ export default function CreditAnalyzer() {
       }
     }
 
-    // Consolidate category totals
     const summary = {};
     allTxns.forEach((txn) => {
       summary[txn.category] = (summary[txn.category] || 0) + txn.amount;
@@ -67,6 +65,32 @@ export default function CreditAnalyzer() {
     document.body.removeChild(link);
   };
 
+  const downloadOthersCSV = () => {
+    const others = analysis.transactions.filter(t => t.category === "Others");
+    if (!others.length) return;
+
+    const headers = ["Date", "Merchant", "Amount", "Category", "Bank"];
+    const rows = others.map((txn) => [
+      txn.date,
+      txn.merchant,
+      txn.amount,
+      txn.category,
+      txn.bank
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.href = encodedUri;
+    link.download = "uncategorized_expenses.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-4 font-sans">
       <h1 className="text-3xl font-bold mb-6 text-center">Credit Card Spend Analyzer</h1>
@@ -87,12 +111,20 @@ export default function CreditAnalyzer() {
           Analyze
         </button>
         {analysis && analysis.transactions.length > 0 && (
-          <button
-            className="px-4 py-2 bg-green-600 text-white rounded"
-            onClick={downloadCSV}
-          >
-            Download CSV
-          </button>
+          <div className="flex gap-4 mt-2">
+            <button
+              className="px-4 py-2 bg-green-600 text-white rounded"
+              onClick={downloadCSV}
+            >
+              Download All CSV
+            </button>
+            <button
+              className="px-4 py-2 bg-yellow-600 text-white rounded"
+              onClick={downloadOthersCSV}
+            >
+              Download 'Others' CSV
+            </button>
+          </div>
         )}
       </div>
 
