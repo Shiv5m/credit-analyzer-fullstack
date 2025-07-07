@@ -10,6 +10,28 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 import pandas as pd
 
+
+def categorize_merchant(merchant_name, keywords, model=None):
+    merchant_lower = merchant_name.lower()
+
+    for category, words in keywords.items():
+        for word in words:
+            if word.lower() in merchant_lower:
+                return category
+
+    # ML fallback
+    if model:
+        try:
+            probas = model.predict_proba([merchant_name])[0]
+            categories = model.classes_
+            max_idx = probas.argmax()
+            if probas[max_idx] >= 0.7:
+                return categories[max_idx]
+        except:
+            pass
+
+    return "Others"
+
 app = Flask(__name__)
 
 LABEL_PATH = os.path.join(os.path.dirname(__file__), "merchant_labels.json")
