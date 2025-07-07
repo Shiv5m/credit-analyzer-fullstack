@@ -41,13 +41,18 @@ def detect_card_name(pdf_file):
             first_page = pdf.pages[0]
             lines = (first_page.extract_text() or "").splitlines()
 
-            for line in lines:
-                line_clean = line.encode("ascii", "ignore").decode().strip().lower()
-                if "american express" in line_clean and "credit card" in line_clean:
-                    return line.strip()
-                if "credit card" in line_clean and len(line.strip()) <= 100:
-                    return line.strip()
+            # Priority: Line 3 (typically the card name line)
+            if len(lines) >= 3 and "credit card" in lines[2].lower():
+                return lines[2].strip().replace("Statement", "").strip()
 
+            for line in lines:
+                l = line.encode("ascii", "ignore").decode().strip().lower()
+                if "american express" in l and "credit card" in l:
+                    return line.strip().replace("Statement", "").strip()
+                if "credit card" in l and len(line.strip()) <= 100:
+                    return line.strip().replace("Statement", "").strip()
+
+            # Fallback
             full_text = "\n".join(lines).lower()
             if "american express" in full_text:
                 return "American Express Credit Card"
