@@ -43,25 +43,18 @@ def detect_card_name(pdf_file):
         with pdfplumber.open(pdf_file) as pdf:
             first_page = pdf.pages[0]
             lines = (first_page.extract_text() or "").splitlines()
-            if len(lines) >= 3:
-                line3 = lines[2].strip()
-                if "credit card" in line3.lower():
-                    return line3.replace("Statement", "").strip()
-            for line in lines:
-                l = line.encode("ascii", "ignore").decode().strip().lower()
-                if "credit card" in l:
-                    return line.strip().replace("Statement", "").strip()
-            return "Unknown"
+            for line in lines[:5]:
+                if "credit card" in line.lower():
+                    return line.replace("Statement", "").strip()
     except Exception:
-        return "Unknown"
+        pass
+    return "Unknown"
 
 def parse(text, card_name="Unknown"):
     txns = []
     lines = text.splitlines()
 
     date_pattern = re.compile(r"(\d{2}/\d{2}/\d{4})\s+(.+?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)")
-    month_pattern = re.compile(r"^([A-Za-z]+)\s+(\d{1,2})\s+(.*?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{2}))$")
-
     for line in lines:
         line = line.strip()
 
@@ -78,15 +71,14 @@ def parse(text, card_name="Unknown"):
                 })
             continue
 
-        # Match AMEX style: Month Day Merchant Amount
+        # Month format fallback
         tokens = line.split()
         if len(tokens) >= 4 and tokens[0].lower() in MONTHS:
             try:
                 month = tokens[0].capitalize()
                 day = tokens[1].zfill(2)
                 amount_str = tokens[-1].replace(",", "")
-                float(amount_str)  # validate amount
-
+                float(amount_str)
                 merchant = " ".join(tokens[2:-1]).strip()
                 if is_expense(merchant):
                     date = f"{day}/{str(MONTHS.index(month.lower())+1).zfill(2)}/2025"
