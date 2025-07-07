@@ -165,7 +165,6 @@ import joblib
 import pandas as pd
 
 @app.route('/retrain-model', methods=['POST'])
-def retrain_model():
     from pathlib import Path
 
     # Load manual labels
@@ -198,6 +197,40 @@ def retrain_model():
         ("clf", LogisticRegression(max_iter=500))
     ])
     model.fit(df["merchant"], df["category"])
+    model_path = Path(__file__).parent / "merchant_classifier_model.pkl"
+    joblib.dump(model, model_path)
+
+    return jsonify({"message": "Model retrained", "samples": len(df)})
+
+
+@app.route('/retrain-model', methods=['POST'])
+def retrain_model():
+    from pathlib import Path
+    import pandas as pd
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import Pipeline
+    import joblib
+
+    label_path = Path(__file__).parent / "merchant_labels.json"
+    if not label_path.exists():
+        return jsonify({"error": "No labels found"}), 400
+
+    with open(label_path) as f:
+        manual_data = json.load(f)
+
+    data = [{"merchant": k, "category": v} for k, v in manual_data.items()]
+    df = pd.DataFrame(data)
+
+    if df.empty:
+        return jsonify({"error": "No training data"}), 400
+
+    model = Pipeline([
+        ("tfidf", TfidfVectorizer(ngram_range=(1, 2), lowercase=True)),
+        ("clf", LogisticRegression(max_iter=500))
+    ])
+    model.fit(df["merchant"], df["category"])
+
     model_path = Path(__file__).parent / "merchant_classifier_model.pkl"
     joblib.dump(model, model_path)
 
