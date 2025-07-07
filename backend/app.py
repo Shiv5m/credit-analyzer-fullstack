@@ -60,7 +60,7 @@ def parse(text, card_name="Unknown"):
     lines = text.splitlines()
 
     date_pattern = re.compile(r"(\d{2}/\d{2}/\d{4})\s+(.+?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)")
-    alt_pattern = re.compile(r"^([A-Za-z]+)\s+(\d{1,2})\s+(.+?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)$")
+    month_pattern = re.compile(r"^([A-Za-z]+)\s+(\d{1,2})\s+(.*?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{2}))$")
 
     for line in lines:
         line = line.strip()
@@ -78,18 +78,27 @@ def parse(text, card_name="Unknown"):
                 })
             continue
 
-        m2 = alt_pattern.match(line)
-        if m2:
-            month, day, merchant, amount = m2.groups()
-            if month.lower() in MONTHS and is_expense(merchant):
-                date = f"{day.zfill(2)}/{str(list(MONTHS).index(month.lower())+1).zfill(2)}/2025"
-                txns.append({
-                    "date": date,
-                    "merchant": merchant.strip(),
-                    "category": categorize_by_merchant(merchant),
-                    "amount": float(amount.replace(",", "")),
-                    "card": card_name
-                })
+        # Match AMEX style: Month Day Merchant Amount
+        tokens = line.split()
+        if len(tokens) >= 4 and tokens[0].lower() in MONTHS:
+            try:
+                month = tokens[0].capitalize()
+                day = tokens[1].zfill(2)
+                amount_str = tokens[-1].replace(",", "")
+                float(amount_str)  # validate amount
+
+                merchant = " ".join(tokens[2:-1]).strip()
+                if is_expense(merchant):
+                    date = f"{day}/{str(MONTHS.index(month.lower())+1).zfill(2)}/2025"
+                    txns.append({
+                        "date": date,
+                        "merchant": merchant,
+                        "category": categorize_by_merchant(merchant),
+                        "amount": float(amount_str),
+                        "card": card_name
+                    })
+            except:
+                continue
 
     return txns
 
