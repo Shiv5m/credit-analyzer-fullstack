@@ -25,8 +25,9 @@ def analyze():
     file.save(temp_path)
 
     with pdfplumber.open(temp_path) as pdf:
-        text = "
-".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+        text = "\n".join([
+            page.extract_text() for page in pdf.pages if page.extract_text()
+        ])
 
     os.remove(temp_path)
 
